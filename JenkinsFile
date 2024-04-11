@@ -10,7 +10,7 @@ pipeline {
                 }
             }
             steps {
-                git branch: 'main', url: 'https://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@github.com/danielelsh/jenkins_pipline.git'
+               checkout scm
             }
         }
 
