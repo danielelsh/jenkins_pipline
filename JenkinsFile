@@ -1,0 +1,97 @@
+pipeline {
+    agent any
+
+    stages {
+
+        stage('Checkout') {
+             when {
+                expression {
+                    params.build_and_deploy == true
+                }
+            }
+            steps {
+                git branch: 'main', url: 'https://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@github.com/danielelsh/jenkins_pipline.git'
+            }
+        }
+
+        stage('Build Docker') {
+              when {
+                expression {
+                    params.build_and_deploy == true
+                }
+            }
+            steps {
+                script {
+                    // Build Docker image
+                    docker.build("jenkins:latest", "-f ${WORKSPACE}/DockerFile .")
+                }
+            }
+        }
+
+
+        stage('Start Docker') {
+              when {
+                expression {
+                    params.build_and_deploy == true
+                }
+            }
+             steps{
+                 script {
+                      docker.image('jenkins:latest').run('-d -v /root/.aws:/root/.aws')
+             }
+             }
+    }
+
+    stage('upload image to ECR') {
+          when {
+                expression {
+                    params.build_and_deploy == true
+                }
+            }
+            steps {
+                sh '''
+                    aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 161192472568.dkr.ecr.us-east-1.amazonaws.com
+                    docker tag jenkins:latest 161192472568.dkr.ecr.us-east-1.amazonaws.com/danielshemesh:latest
+                    docker push 161192472568.dkr.ecr.us-east-1.amazonaws.com/danielshemesh:latest
+                '''
+            }
+        }
+
+    stage('Pull Iamge') {
+         when {
+                expression {
+                    params.pull_and_test == true
+                }
+            }
+        steps {
+            sh '''
+                docker pull 161192472568.dkr.ecr.us-east-1.amazonaws.com/danielshemesh:latest
+            '''
+        }
+    }
+
+    stage('Pull Artifact') {
+         when {
+                expression {
+                    params.pull_and_test == true
+                }
+            }
+            steps {
+                sh '''
+                    aws s3 cp s3://danielshemesh/$(aws s3api list-objects --bucket danielshemesh --prefix jenkins_artifacts/ --query 'reverse(sort_by(Contents,&LastModified))[0].Key' --output text) /tmp/latest_artifact.txt
+                '''
+                 script {
+                    def file = new File("/tmp/latest_artifact.txt")
+
+                    if (file.exists() && file.length() > 0) {
+                        echo "Artifact info: ${file.text}"
+                    } else {
+                        echo "Artifact does not exist or is empty."
+                    }
+                }
+
+            }
+        }
+
+    }
+}
