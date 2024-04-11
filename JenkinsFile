@@ -1,0 +1,12 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('Hello Stage') {
+            steps {
+                // This step prints 'Hello' to the console output
+                echo 'Hello'
+            }
+        }
+    }
+}
