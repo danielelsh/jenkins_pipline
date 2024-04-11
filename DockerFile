@@ -3,4 +3,4 @@ FROM ubuntu:20.04
 RUN apt-get update && apt-get install -y python3 python3-pip && pip3 install boto3
 COPY python_script.py /usr/src/app/
 WORKDIR /usr/src/app
-CMD ["python3", " /usr/src/app/python_script.py"]
+CMD ["python3", "/usr/src/app/python_script.py"]
